@@ -1,6 +1,7 @@
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "@/redux/provider";
+import DesktopWarning from "@/components/common/DesktopWarning";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,7 +30,10 @@ export default function RootLayout({ children }) {
       className={`${inter.variable} ${plusJakarta.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#F9FAFB] text-[#111827]">
-        <ReduxProvider>{children}</ReduxProvider>
+        <div className="md:hidden flex flex-col min-h-full flex-1">
+          <ReduxProvider>{children}</ReduxProvider>
+        </div>
+        <DesktopWarning />
       </body>
     </html>
   );
