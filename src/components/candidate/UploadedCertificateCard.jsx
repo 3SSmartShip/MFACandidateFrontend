@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RiMore2Fill, RiArrowRightSLine, RiEditBoxLine, RiDeleteBin5Line } from '@remixicon/react';
 
-export default function UploadedCertificateCard({ cert, onEditClick, onDeleteClick }) {
+const badgeConfig = {
+  processing: { bg: 'bg-[#dde6fd]', text: 'text-[#334f94]', label: 'Processing' },
+  review: { bg: 'bg-[#fdecce]', text: 'text-[#935f07]', label: 'Review' },
+  error: { bg: 'bg-[#fcdada]', text: 'text-[#bf3636]', label: 'Error' },
+};
+
+export default function UploadedCertificateCard({ cert, router, onEditClick, onDeleteClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const status = cert.status;
+  const hasStatus = status && status !== 'completed';
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -17,47 +25,82 @@ export default function UploadedCertificateCard({ cert, onEditClick, onDeleteCli
     };
   }, [menuRef]);
 
+  if (hasStatus) {
+    const badge = badgeConfig[status] || badgeConfig.processing;
+    return (
+      <div className="bg-white border border-[#e9e9ea] rounded-[16px] px-4 py-2 flex gap-3 items-center w-full">
+        <div className="flex flex-col gap-1 flex-1 min-w-px">
+          <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{cert.name}</h3>
+          <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">{cert.date || cert.fileName || 'Last Updated Date'}</p>
+        </div>
+        <div className={`px-3 py-2 rounded-full shrink-0 ${badge.bg}`}>
+          <span className={`font-sans font-medium text-[11px] leading-[1.2] tracking-[0.5px] ${badge.text}`}>
+            {badge.label}
+          </span>
+        </div>
+        <div className="flex items-center self-stretch">
+          <div className="flex gap-2.5 h-full items-start py-2">
+            {status === 'review' ? (
+              <button
+                onClick={() => router?.push('/candidate/view-data')}
+                className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] shrink-0"
+              >
+                <RiArrowRightSLine size={16} className="text-[#313131]" />
+              </button>
+            ) : (
+              <div className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shrink-0">
+                <RiArrowRightSLine size={16} className="text-[#313131]" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white border border-[#e9e9ea] rounded-2xl p-4 flex justify-between items-center relative shadow-sm">
-      <div className="flex flex-col gap-1">
-        <h3 className="font-sans font-medium text-[16px] text-[#313131]">{cert.name}</h3>
-        <p className="font-sans font-normal text-[12px] text-[#666]">{cert.date || cert.fileName || 'Last Updated Date'}</p>
+    <div className="bg-white border border-[#e9e9ea] rounded-[16px] px-4 py-2 flex items-center w-full relative">
+      <div className="flex flex-col gap-1 flex-1 min-w-px">
+        <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{cert.name}</h3>
+        <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">{cert.date || cert.fileName || 'Last Updated Date'}</p>
       </div>
       
       <div className="flex items-center gap-2">
-        <button 
+        <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="w-8 h-8 flex items-center justify-center border border-[#e9e9ea] rounded-lg hover:bg-gray-50 bg-white shadow-sm"
+          className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50"
         >
           <RiMore2Fill size={16} className="text-[#313131]" />
         </button>
-        <button className="w-8 h-8 flex items-center justify-center border border-[#e9e9ea] rounded-lg hover:bg-gray-50 bg-white shadow-sm">
+        <button className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50">
           <RiArrowRightSLine size={16} className="text-[#313131]" />
         </button>
       </div>
 
-      {/* Dropdown Menu */}
       {menuOpen && (
-        <div ref={menuRef} className="absolute right-4 top-14 w-[140px] bg-white border border-[#e9e9ea] rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.1)] flex flex-col p-1 z-10 animate-fade-in-up">
-          <button 
+        <div
+          ref={menuRef}
+          className="absolute right-4 top-12 bg-white rounded-[12px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.1),0px_4px_4px_0px_rgba(0,0,0,0.09),0px_8px_5px_0px_rgba(0,0,0,0.05),0px_15px_6px_0px_rgba(0,0,0,0.01)] flex flex-col p-1 z-10 animate-fade-in-up min-w-[140px]"
+        >
+          <button
             onClick={() => {
               setMenuOpen(false);
               if (onEditClick) onEditClick(cert);
             }}
-            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg text-left"
+            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-[6px] text-left"
           >
-            <RiEditBoxLine size={16} className="text-[#666]" />
-            <span className="font-sans font-medium text-[14px] text-[#666]">Edit Form</span>
+            <RiEditBoxLine size={16} className="text-[#79797e]" />
+            <span className="font-sans font-medium text-[14px] leading-[20px] tracking-[0.1px] text-[#79797e]">Edit Form</span>
           </button>
-          <button 
+          <button
             onClick={() => {
               setMenuOpen(false);
               if (onDeleteClick) onDeleteClick(cert);
             }}
-            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-lg text-left"
+            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-[6px] text-left"
           >
-            <RiDeleteBin5Line size={16} className="text-[#666]" />
-            <span className="font-sans font-medium text-[14px] text-[#666]">Delete</span>
+            <RiDeleteBin5Line size={16} className="text-[#79797e]" />
+            <span className="font-sans font-medium text-[14px] leading-[20px] tracking-[0.1px] text-[#79797e]">Delete</span>
           </button>
         </div>
       )}

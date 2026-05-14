@@ -35,6 +35,43 @@ export const candidateLogin = async (email, password) => {
   };
 };
 
+export const sendPhoneOtp = async (phone) => {
+  if (!supabase) throw new Error('Supabase is not configured');
+
+  const { error } = await supabase.auth.signInWithOtp({ phone });
+
+  if (error) {
+    throw new Error(error.message || 'Unable to send OTP');
+  }
+
+  return true;
+};
+
+export const verifyPhoneOtp = async (phone, token) => {
+  if (!supabase) throw new Error('Supabase is not configured');
+
+  const { data, error } = await supabase.auth.verifyOtp({
+    phone,
+    token,
+    type: 'sms',
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Unable to verify OTP');
+  }
+
+  const accessToken = data?.session?.access_token;
+
+  if (accessToken && typeof window !== 'undefined') {
+    localStorage.setItem('sb-access-token', accessToken);
+  }
+
+  return {
+    ...data,
+    accessToken,
+  };
+};
+
 export const candidateLogout = async () => {
   if (supabase) {
     await supabase.auth.signOut();

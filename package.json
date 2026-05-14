@@ -13,10 +13,12 @@
     "@remixicon/react": "^4.9.0",
     "@supabase/supabase-js": "^2.105.4",
     "axios": "^1.16.0",
+    "country-list": "^2.4.1",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-redux": "^9.2.0",
+    "react-select": "^5.10.2",
     "remixicon": "^4.9.1"
   },
   "devDependencies": {

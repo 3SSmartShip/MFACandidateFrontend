@@ -1,34 +1,103 @@
 'use client';
-import React, { useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { RiArrowLeftLine, RiUpload2Line, RiLogoutBoxLine } from '@remixicon/react';
+import Select from 'react-select';
+import { RiArrowLeftLine, RiLogoutBoxLine } from '@remixicon/react';
+import { getData } from 'country-list';
+
+const countryOptions = getData().map(({ code, name }) => ({
+  value: code,
+  label: name,
+}));
+
+const selectStyles = {
+  control: (base, state) => ({
+    ...base,
+    minHeight: '36px',
+    height: '36px',
+    borderRadius: '8px',
+    borderColor: state.isFocused ? '#1a1d26' : '#e9e9ea',
+    boxShadow: state.isFocused ? '0 0 0 2px #1a1d26' : 'none',
+    '&:hover': { borderColor: '#e9e9ea' },
+    backgroundColor: '#ffffff',
+    paddingLeft: '0',
+    cursor: 'pointer',
+  }),
+  valueContainer: (base) => ({
+    ...base,
+    padding: '2px 12px',
+    height: '36px',
+    display: 'flex',
+    alignItems: 'center',
+  }),
+  placeholder: (base) => ({
+    ...base,
+    color: '#666',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+    fontWeight: 500,
+    margin: 0,
+  }),
+  singleValue: (base) => ({
+    ...base,
+    color: '#313131',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+    fontWeight: 500,
+  }),
+  input: (base) => ({
+    ...base,
+    color: '#313131',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+    fontWeight: 500,
+    margin: 0,
+    padding: 0,
+  }),
+  indicatorSeparator: () => ({ display: 'none' }),
+  dropdownIndicator: (base) => ({
+    ...base,
+    color: '#666',
+    padding: '0 8px',
+    '&:hover': { color: '#666' },
+  }),
+  menu: (base) => ({
+    ...base,
+    borderRadius: '8px',
+    border: '1px solid #e9e9ea',
+    boxShadow: '0px 4px 14px rgba(0,0,0,0.1)',
+    marginTop: '4px',
+    zIndex: 50,
+  }),
+  menuList: (base) => ({
+    ...base,
+    padding: '4px',
+    maxHeight: '200px',
+  }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isFocused ? '#f5f5f7' : 'transparent',
+    color: '#313131',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+    fontWeight: state.isSelected ? 600 : 500,
+    borderRadius: '6px',
+    padding: '8px 12px',
+    cursor: 'pointer',
+    '&:active': { backgroundColor: '#e9e9ea' },
+  }),
+  noOptionsMessage: (base) => ({
+    ...base,
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+    color: '#666',
+  }),
+};
 
 export default function BankDetails() {
-  const fileInputRef = useRef(null);
-
-  const handleUploadClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = (e) => {
-    // Basic handler, just to show it functions
-    if (e.target.files && e.target.files.length > 0) {
-      console.log('File selected:', e.target.files[0].name);
-    }
-  };
-
   return (
-    <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative pb-10">
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        className="hidden" 
-        onChange={handleFileChange} 
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-      />
-      <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#e9e9ea]">
+    <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
+      <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#e9e9ea] bg-white">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
             <img src="/Thumbnail.svg" alt="Company Logo" className="w-full h-full object-contain" />
@@ -41,69 +110,84 @@ export default function BankDetails() {
         </button>
       </div>
 
-      <div className="px-5 pt-4 pb-6 border-b border-[#e9e9ea]">
-        <h1 className="font-heading font-semibold text-[24px] text-[#313131]">
+      <div className="bg-[#f5f5f7] px-5 pt-10 pb-6">
+        <h1 className="font-heading font-semibold text-[24px] text-[#313131] leading-[32px]">
           Bank Details
         </h1>
       </div>
 
-      <form className="flex flex-col gap-6 px-5 pt-6 flex-1">
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex gap-1 items-center">
-            <label className="font-heading font-medium text-[16px] text-[#313131]">Bank Name</label>
-            <span className="text-[#EF4444]">*</span>
+      <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex-1">
+        <form className="flex flex-col gap-5 w-full">
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex gap-1 items-center">
+              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Bank Name</label>
+              <span className="text-[#EF4444]">*</span>
+            </div>
+            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="eg. HDFC Bank" />
           </div>
-          <input type="text" className="w-full h-[40px] px-3 py-2 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="eg. HDFC Bank" />
-        </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex gap-1 items-center">
-            <label className="font-heading font-medium text-[16px] text-[#313131]">Account Holder Name</label>
-            <span className="text-[#EF4444]">*</span>
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex gap-1 items-center">
+              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Account Holder Name</label>
+              <span className="text-[#EF4444]">*</span>
+            </div>
+            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="As per bank records" />
           </div>
-          <input type="text" className="w-full h-[40px] px-3 py-2 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="As per bank records" />
-        </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex gap-1 items-center">
-            <label className="font-heading font-medium text-[16px] text-[#313131]">Account Number</label>
-            <span className="text-[#EF4444]">*</span>
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex gap-1 items-center">
+              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Account Number</label>
+              <span className="text-[#EF4444]">*</span>
+            </div>
+            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="Enter account number" />
           </div>
-          <input type="text" className="w-full h-[40px] px-3 py-2 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="Enter account number" />
-        </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex gap-1 items-center">
-            <label className="font-heading font-medium text-[16px] text-[#313131]">IFSC Code</label>
-            <span className="text-[#EF4444]">*</span>
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex gap-1 items-center">
+              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Country</label>
+              <span className="text-[#EF4444]">*</span>
+            </div>
+            <Select
+              options={countryOptions}
+              placeholder="Select bank's country"
+              isClearable
+              isSearchable
+              styles={selectStyles}
+              className="w-full"
+              classNamePrefix="country-select"
+              noOptionsMessage={() => 'No countries found'}
+            />
           </div>
-          <input type="text" className="w-full h-[40px] px-3 py-2 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="eg. HDFC0001234" />
-        </div>
-      </form>
 
-      <div className="px-5 pt-6 mt-auto border-t border-[#e9e9ea] pb-6">
-        <div className="flex gap-4">
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex gap-1 items-center">
+              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">SWIFT Code</label>
+              <span className="text-[#EF4444]">*</span>
+            </div>
+            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="Enter your swift code" />
+          </div>
+
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex gap-1 items-center">
+              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">IFSC Code</label>
+            </div>
+            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="eg. HDFC0001234" />
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white border-t border-b border-[#e9e9ea] px-5 py-6">
+        <div className="flex gap-3">
           <Link href="/candidate/dashboard" className="flex-1">
-            <button type="button" className="w-full py-3 px-4 bg-white border border-[#e9e9ea] rounded-xl font-sans font-medium text-[14px] text-[#313131] flex items-center justify-center hover:bg-gray-50 transition-all">
-              Cancel
+            <button type="button" className="w-full py-3 px-4 bg-white border border-[#e9e9ea] rounded-lg font-sans font-medium text-[14px] text-[#313131] flex items-center justify-center gap-1 hover:bg-gray-50 transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]">
+              <RiArrowLeftLine size={16} />
+              Back
             </button>
           </Link>
-          <button type="button" className="flex-1 py-3 px-4 bg-[#1a1d26] rounded-xl font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all">
-            Save
+          <button type="button" className="flex-1 py-3 px-4 bg-[#1a1d26] rounded-lg font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]">
+            Edit
           </button>
         </div>
-      </div>
-      
-      {/* Upload FAB */}
-      <div className="fixed bottom-10 right-[calc(50%-186px)] z-10 hidden sm:block">
-        <button onClick={handleUploadClick} className="w-14 h-14 bg-[#1a1d26] rounded-2xl flex items-center justify-center shadow-lg hover:bg-[#2a2e3d] transition-all">
-          <RiUpload2Line size={24} className="text-white" />
-        </button>
-      </div>
-      <div className="fixed bottom-10 right-5 z-10 sm:hidden">
-        <button onClick={handleUploadClick} className="w-14 h-14 bg-[#1a1d26] rounded-2xl flex items-center justify-center shadow-lg hover:bg-[#2a2e3d] transition-all">
-          <RiUpload2Line size={24} className="text-white" />
-        </button>
       </div>
     </div>
   );
