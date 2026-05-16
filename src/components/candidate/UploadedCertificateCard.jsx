@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RiMore2Fill, RiArrowRightSLine, RiEditBoxLine, RiDeleteBin5Line } from '@remixicon/react';
+import { RiMore2Fill, RiArrowRightSLine, RiEyeLine, RiEditBoxLine, RiDeleteBin5Line } from '@remixicon/react';
 
 const badgeConfig = {
   processing: { bg: 'bg-[#dde6fd]', text: 'text-[#334f94]', label: 'Processing' },
   review: { bg: 'bg-[#fdecce]', text: 'text-[#935f07]', label: 'Review' },
   error: { bg: 'bg-[#fcdada]', text: 'text-[#bf3636]', label: 'Error' },
+  success: { bg: 'bg-[#b2e8d6]', text: 'text-[#00704b]', label: 'Success' },
 };
 
-export default function UploadedCertificateCard({ cert, router, onEditClick, onDeleteClick }) {
+export default function UploadedCertificateCard({ cert, router, onEyeClick, onEditClick, onDeleteClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const status = cert.status;
-  const hasStatus = status && status !== 'completed';
+  const showBadge = status && status !== 'success';
+  const isProcessing = status === 'processing';
+  const isReview = status === 'review';
+  const canNavigate = isReview || status === 'success' || status === 'error';
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -19,60 +23,48 @@ export default function UploadedCertificateCard({ cert, router, onEditClick, onD
         setMenuOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [menuRef]);
-
-  if (hasStatus) {
-    const badge = badgeConfig[status] || badgeConfig.processing;
-    return (
-      <div className="bg-white border border-[#e9e9ea] rounded-[16px] px-4 py-2 flex gap-3 items-center w-full">
-        <div className="flex flex-col gap-1 flex-1 min-w-px">
-          <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{cert.name}</h3>
-          <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">{cert.date || cert.fileName || 'Last Updated Date'}</p>
-        </div>
-        <div className={`px-3 py-2 rounded-full shrink-0 ${badge.bg}`}>
-          <span className={`font-sans font-medium text-[11px] leading-[1.2] tracking-[0.5px] ${badge.text}`}>
-            {badge.label}
-          </span>
-        </div>
-        <div className="flex items-center self-stretch">
-          <div className="flex gap-2.5 h-full items-start py-2">
-            {status === 'review' ? (
-              <button
-                onClick={() => router?.push('/candidate/view-data')}
-                className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] shrink-0"
-              >
-                <RiArrowRightSLine size={16} className="text-[#313131]" />
-              </button>
-            ) : (
-              <div className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shrink-0">
-                <RiArrowRightSLine size={16} className="text-[#313131]" />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white border border-[#e9e9ea] rounded-[16px] px-4 py-2 flex items-center w-full relative">
       <div className="flex flex-col gap-1 flex-1 min-w-px">
-        <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{cert.name}</h3>
-        <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">{cert.date || cert.fileName || 'Last Updated Date'}</p>
+        <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{cert.name || 'Certificate'}</h3>
+        <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">{cert.fileName || 'Last Updated Date'}</p>
       </div>
-      
+
+      {showBadge && status && (
+        <div className={`mr-2 px-3 py-2 rounded-full shrink-0 ${badgeConfig[status]?.bg || badgeConfig.processing.bg}`}>
+          <span className={`font-sans font-medium text-[11px] leading-[1.2] tracking-[0.5px] ${badgeConfig[status]?.text || badgeConfig.processing.text}`}>
+            {badgeConfig[status]?.label || status}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
+        {!isProcessing && onEyeClick && (
+          <button
+            onClick={() => onEyeClick(cert)}
+            className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50"
+          >
+            <RiEyeLine size={16} className="text-[#313131]" />
+          </button>
+        )}
+        {!isProcessing && (
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50"
+          >
+            <RiMore2Fill size={16} className="text-[#313131]" />
+          </button>
+        )}
         <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50"
+          onClick={() => canNavigate && router?.push(`/candidate/view-data?docId=${cert.id}`)}
+          className={`border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] ${canNavigate ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
         >
-          <RiMore2Fill size={16} className="text-[#313131]" />
-        </button>
-        <button className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50">
           <RiArrowRightSLine size={16} className="text-[#313131]" />
         </button>
       </div>

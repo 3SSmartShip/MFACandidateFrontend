@@ -1,13 +1,21 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RiEyeOffLine, RiEyeLine } from '@remixicon/react';
+import { onboardCandidate } from '@/api/onboard';
 
 export default function InitialData() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAutoSyncing = searchParams.get('syncing') === 'true';
+
+  useEffect(() => {
+    const inviteToken = searchParams.get('t');
+    if (inviteToken && typeof window !== 'undefined') {
+      localStorage.setItem('invite-token', inviteToken);
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -20,11 +28,12 @@ export default function InitialData() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRePassword, setShowRePassword] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     if (isAutoSyncing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSyncing(true);
-      // Simulate data extraction from passport
       const timer = setTimeout(() => {
         setFormData({
           name: 'Abhyuday Deshpande',
@@ -44,16 +53,39 @@ export default function InitialData() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
     setIsSyncing(true);
-    // Simulate API request delay
-    setTimeout(() => {
+
+    try {
+      const inviteToken = typeof window !== 'undefined' ? localStorage.getItem('invite-token') : null;
+      if (!inviteToken) {
+        setSubmitError('Missing invitation token. Please use the invitation link.');
+        setIsSyncing(false);
+        return;
+      }
+
+      const res = await onboardCandidate({
+        inviteToken,
+        passportId: formData.passportId,
+        fullName: formData.name,
+        dateOfBirth: formData.dob,
+      });
+
+      const { orgId, directoryId } = res;
+
       if (typeof window !== 'undefined') {
+        localStorage.setItem('orgId', orgId);
+        localStorage.setItem('directoryId', directoryId);
         localStorage.setItem('passportUploaded', 'true');
       }
+
       router.push('/candidate/dashboard');
-    }, 1500);
+    } catch (err) {
+      setSubmitError(err?.response?.data?.error || err.message || 'Onboarding failed. Please try again.');
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -170,6 +202,10 @@ export default function InitialData() {
               </button>
             </div>
           </div>
+
+          {submitError && (
+            <p className="font-sans text-[12px] leading-[16px] text-[#EF4444] text-center">{submitError}</p>
+          )}
 
           <div className="mt-8">
             <button 

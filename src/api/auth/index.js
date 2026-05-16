@@ -55,6 +55,8 @@ export const verifyPhoneOtp = async (phone, token) => {
     token,
     type: 'sms',
   });
+  console.log("data", data)
+  console.log("error", error)
 
   if (error) {
     throw new Error(error.message || 'Unable to verify OTP');

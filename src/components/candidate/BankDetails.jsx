@@ -1,14 +1,46 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Select from 'react-select';
-import { RiArrowLeftLine, RiLogoutBoxLine } from '@remixicon/react';
+import {
+  RiArrowLeftLine,
+  RiLogoutBoxLine,
+  RiMore2Fill,
+  RiEditBoxLine,
+  RiDeleteBin5Line,
+  RiCloseLine,
+} from '@remixicon/react';
 import { getData } from 'country-list';
+import { createBankDetails, updateBankDetails, deleteBankDetails } from '@/api/bank-details';
 
 const countryOptions = getData().map(({ code, name }) => ({
   value: code,
   label: name,
 }));
+
+const currencyOptions = [
+  { value: 'USD', label: 'USD - US Dollar' },
+  { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'GBP', label: 'GBP - British Pound' },
+  { value: 'INR', label: 'INR - Indian Rupee' },
+  { value: 'AED', label: 'AED - UAE Dirham' },
+  { value: 'SAR', label: 'SAR - Saudi Riyal' },
+  { value: 'SGD', label: 'SGD - Singapore Dollar' },
+  { value: 'AUD', label: 'AUD - Australian Dollar' },
+  { value: 'CAD', label: 'CAD - Canadian Dollar' },
+  { value: 'CHF', label: 'CHF - Swiss Franc' },
+  { value: 'JPY', label: 'JPY - Japanese Yen' },
+  { value: 'CNY', label: 'CNY - Chinese Yuan' },
+  { value: 'HKD', label: 'HKD - Hong Kong Dollar' },
+  { value: 'MYR', label: 'MYR - Malaysian Ringgit' },
+  { value: 'THB', label: 'THB - Thai Baht' },
+  { value: 'KRW', label: 'KRW - South Korean Won' },
+  { value: 'ZAR', label: 'ZAR - South African Rand' },
+  { value: 'BRL', label: 'BRL - Brazilian Real' },
+  { value: 'MXN', label: 'MXN - Mexican Peso' },
+  { value: 'NZD', label: 'NZD - New Zealand Dollar' },
+];
 
 const selectStyles = {
   control: (base, state) => ({
@@ -94,7 +126,267 @@ const selectStyles = {
   }),
 };
 
+const inputClass =
+  'w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]';
+const labelClass =
+  'font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]';
+
+function FormField({ label, required, children }) {
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex gap-1 items-center">
+        <label className={labelClass}>{label}</label>
+        {required && <span className="text-[#EF4444]">*</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function BankDetails() {
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [orgId, setOrgId] = useState(null);
+  const [bankDetails, setBankDetails] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const menuRef = useRef(null);
+
+  const [form, setForm] = useState({
+    bankName: '',
+    accountHolderName: '',
+    accountNumber: '',
+    swiftCode: '',
+    ifscCode: '',
+    bankCountry: '',
+    currency: '',
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    const storedOrgId = localStorage.getItem('orgId');
+    setOrgId(storedOrgId);
+    const stored = localStorage.getItem('bankDetails');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setBankDetails(parsed);
+        setForm(parsed);
+      } catch (e) {
+        setShowForm(true);
+      }
+    } else {
+      setShowForm(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function updateField(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function isFormValid() {
+    return (
+      form.bankName.trim() &&
+      form.accountHolderName.trim() &&
+      form.accountNumber.trim() &&
+      form.swiftCode.trim() &&
+      form.bankCountry &&
+      form.currency
+    );
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!isFormValid() || !orgId) return;
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const payload = { ...form };
+      const res = bankDetails
+        ? await updateBankDetails(orgId, payload)
+        : await createBankDetails(orgId, payload);
+      const saved = res;
+      setBankDetails(saved);
+      setForm(saved);
+      localStorage.setItem('bankDetails', JSON.stringify(saved));
+      setShowForm(false);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleEdit() {
+    setMenuOpen(false);
+    setForm({ ...bankDetails });
+    setShowForm(true);
+  }
+
+  async function handleDelete() {
+    setMenuOpen(false);
+    if (!orgId) return;
+    try {
+      await deleteBankDetails(orgId);
+      setBankDetails(null);
+      setForm({
+        bankName: '',
+        accountHolderName: '',
+        accountNumber: '',
+        swiftCode: '',
+        ifscCode: '',
+        bankCountry: '',
+        currency: '',
+      });
+      localStorage.removeItem('bankDetails');
+      setShowDeleteConfirm(false);
+      setShowForm(true);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Failed to delete');
+      setShowDeleteConfirm(false);
+    }
+  }
+
+  function handleCancel() {
+    if (bankDetails) {
+      setForm({ ...bankDetails });
+      setShowForm(false);
+    } else {
+      setForm({
+        bankName: '',
+        accountHolderName: '',
+        accountNumber: '',
+        swiftCode: '',
+        ifscCode: '',
+        bankCountry: '',
+        currency: '',
+      });
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      const { candidateLogout } = await import('@/api/auth');
+      await candidateLogout();
+    } catch (e) {
+    } finally {
+      localStorage.clear();
+      router.push('/candidate/login');
+    }
+  }
+
+  function getCountryLabel(code) {
+    const country = countryOptions.find((c) => c.value === code);
+    return country ? country.label : code;
+  }
+
+  function renderFormFields() {
+    return (
+      <>
+        <FormField label="Bank Name" required>
+          <input
+            type="text"
+            className={inputClass}
+            placeholder="eg. HDFC Bank"
+            value={form.bankName}
+            onChange={(e) => updateField('bankName', e.target.value)}
+          />
+        </FormField>
+
+        <FormField label="Account Holder Name" required>
+          <input
+            type="text"
+            className={inputClass}
+            placeholder="As per bank records"
+            value={form.accountHolderName}
+            onChange={(e) => updateField('accountHolderName', e.target.value)}
+          />
+        </FormField>
+
+        <FormField label="Account Number" required>
+          <input
+            type="text"
+            className={inputClass}
+            placeholder="Enter account number"
+            value={form.accountNumber}
+            onChange={(e) => updateField('accountNumber', e.target.value)}
+          />
+        </FormField>
+
+        <FormField label="Country" required>
+          {mounted ? (
+            <Select
+              options={countryOptions}
+              placeholder="Select bank's country"
+              isClearable
+              isSearchable
+              styles={selectStyles}
+              className="w-full"
+              classNamePrefix="country-select"
+              noOptionsMessage={() => 'No countries found'}
+              value={countryOptions.find((c) => c.value === form.bankCountry) || null}
+              onChange={(opt) => updateField('bankCountry', opt ? opt.value : '')}
+            />
+          ) : (
+            <div className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg" />
+          )}
+        </FormField>
+
+        <FormField label="Currency" required>
+          {mounted ? (
+            <Select
+              options={currencyOptions}
+              placeholder="Select currency"
+              isClearable
+              isSearchable
+              styles={selectStyles}
+              className="w-full"
+              classNamePrefix="currency-select"
+              noOptionsMessage={() => 'No currencies found'}
+              value={currencyOptions.find((c) => c.value === form.currency) || null}
+              onChange={(opt) => updateField('currency', opt ? opt.value : '')}
+            />
+          ) : (
+            <div className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg" />
+          )}
+        </FormField>
+
+        <FormField label="SWIFT Code" required>
+          <input
+            type="text"
+            className={inputClass}
+            placeholder="Enter your swift code"
+            value={form.swiftCode}
+            onChange={(e) => updateField('swiftCode', e.target.value)}
+          />
+        </FormField>
+
+        <FormField label="IFSC Code">
+          <input
+            type="text"
+            className={inputClass}
+            placeholder="eg. HDFC0001234"
+            value={form.ifscCode}
+            onChange={(e) => updateField('ifscCode', e.target.value)}
+          />
+        </FormField>
+      </>
+    );
+  }
+
   return (
     <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
       <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#e9e9ea] bg-white">
@@ -105,7 +397,10 @@ export default function BankDetails() {
           <div className="w-px h-6 bg-[#e9e9ea]"></div>
           <span className="font-sans font-medium text-[16px] text-[#313131]">Company Name</span>
         </div>
-        <button className="w-10 h-10 text-[#666] border border-[#e9e9ea] rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-gray-50">
+        <button
+          onClick={handleLogout}
+          className="w-10 h-10 text-[#666] border border-[#e9e9ea] rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-gray-50"
+        >
           <RiLogoutBoxLine size={20} />
         </button>
       </div>
@@ -116,79 +411,206 @@ export default function BankDetails() {
         </h1>
       </div>
 
-      <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex-1">
-        <form className="flex flex-col gap-5 w-full">
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Bank Name</label>
-              <span className="text-[#EF4444]">*</span>
-            </div>
-            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="eg. HDFC Bank" />
+      {showForm ? (
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+          <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex-1">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="font-sans text-[14px] text-red-600">{error}</p>
+              </div>
+            )}
+            <div className="flex flex-col gap-5 w-full">{renderFormFields()}</div>
           </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Account Holder Name</label>
-              <span className="text-[#EF4444]">*</span>
+          <div className="bg-white border-t border-b border-[#e9e9ea] px-5 py-6">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex-1 py-3 px-4 bg-white border border-[#e9e9ea] rounded-lg font-sans font-medium text-[14px] text-[#313131] flex items-center justify-center gap-1 hover:bg-gray-50 transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!isFormValid() || isSubmitting}
+                className="flex-1 py-3 px-4 bg-[#1a1d26] rounded-lg font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Saving...' : bankDetails ? 'Update' : 'Save'}
+              </button>
             </div>
-            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="As per bank records" />
-          </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Account Number</label>
-              <span className="text-[#EF4444]">*</span>
-            </div>
-            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="Enter account number" />
-          </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">Country</label>
-              <span className="text-[#EF4444]">*</span>
-            </div>
-            <Select
-              options={countryOptions}
-              placeholder="Select bank's country"
-              isClearable
-              isSearchable
-              styles={selectStyles}
-              className="w-full"
-              classNamePrefix="country-select"
-              noOptionsMessage={() => 'No countries found'}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">SWIFT Code</label>
-              <span className="text-[#EF4444]">*</span>
-            </div>
-            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="Enter your swift code" />
-          </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] text-[#313131] leading-[24px] tracking-[0.15px]">IFSC Code</label>
-            </div>
-            <input type="text" className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" placeholder="eg. HDFC0001234" />
           </div>
         </form>
-      </div>
+      ) : (
+        <>
+          <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex-1">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="font-sans text-[14px] text-red-600">{error}</p>
+              </div>
+            )}
 
-      <div className="bg-white border-t border-b border-[#e9e9ea] px-5 py-6">
-        <div className="flex gap-3">
-          <Link href="/candidate/dashboard" className="flex-1">
-            <button type="button" className="w-full py-3 px-4 bg-white border border-[#e9e9ea] rounded-lg font-sans font-medium text-[14px] text-[#313131] flex items-center justify-center gap-1 hover:bg-gray-50 transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]">
-              <RiArrowLeftLine size={16} />
-              Back
-            </button>
-          </Link>
-          <button type="button" className="flex-1 py-3 px-4 bg-[#1a1d26] rounded-lg font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]">
-            Edit
-          </button>
+            {bankDetails ? (
+              <div className="relative">
+                <div className="bg-[#f9fafb] border border-[#e9e9ea] rounded-[16px] p-5 flex flex-col gap-4">
+                  <div className="flex items-start justify-between">
+                    <h3 className="font-heading font-semibold text-[18px] text-[#313131]">
+                      {bankDetails.bankName}
+                    </h3>
+                    <div className="relative">
+                      <button
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        className="border border-[#e9e9ea] rounded-lg p-2 flex items-center justify-center bg-white shadow-sm hover:bg-gray-50"
+                      >
+                        <RiMore2Fill size={16} className="text-[#313131]" />
+                      </button>
+                      {menuOpen && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 top-10 bg-white rounded-[12px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.1),0px_4px_4px_0px_rgba(0,0,0,0.09),0px_8px_5px_0px_rgba(0,0,0,0.05),0px_15px_6px_0px_rgba(0,0,0,0.01)] flex flex-col p-1 z-10 animate-fade-in-up min-w-[140px]"
+                        >
+                          <button
+                            onClick={handleEdit}
+                            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-[6px] text-left"
+                          >
+                            <RiEditBoxLine size={16} className="text-[#79797e]" />
+                            <span className="font-sans font-medium text-[14px] leading-[20px] tracking-[0.1px] text-[#79797e]">
+                              Edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setMenuOpen(false);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 rounded-[6px] text-left"
+                          >
+                            <RiDeleteBin5Line size={16} className="text-[#79797e]" />
+                            <span className="font-sans font-medium text-[14px] leading-[20px] tracking-[0.1px] text-[#79797e]">
+                              Delete
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                        Account Holder
+                      </p>
+                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                        {bankDetails.accountHolderName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                        Account Number
+                      </p>
+                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                        {bankDetails.accountNumber}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                        SWIFT Code
+                      </p>
+                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                        {bankDetails.swiftCode}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                        IFSC Code
+                      </p>
+                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                        {bankDetails.ifscCode || '\u2014'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                        Country
+                      </p>
+                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                        {getCountryLabel(bankDetails.bankCountry)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                        Currency
+                      </p>
+                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                        {bankDetails.currency}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="font-sans text-[14px] text-[#666] text-center py-10">
+                No bank details found.
+              </p>
+            )}
+          </div>
+          <div className="bg-white border-t border-b border-[#e9e9ea] px-5 py-6">
+            <div className="flex gap-3">
+              <Link href="/candidate/dashboard" className="flex-1">
+                <button
+                  type="button"
+                  className="w-full py-3 px-4 bg-white border border-[#e9e9ea] rounded-lg font-sans font-medium text-[14px] text-[#313131] flex items-center justify-center gap-1 hover:bg-gray-50 transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]"
+                >
+                  <RiArrowLeftLine size={16} />
+                  Back
+                </button>
+              </Link>
+              {bankDetails && (
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="flex-1 py-3 px-4 bg-[#1a1d26] rounded-lg font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-5">
+          <div className="bg-white rounded-[16px] p-6 w-full max-w-[360px] shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading font-semibold text-[18px] text-[#313131]">
+                Delete Bank Details
+              </h3>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <RiCloseLine size={20} className="text-[#666]" />
+              </button>
+            </div>
+            <p className="font-sans text-[14px] text-[#666] leading-[20px] mb-6">
+              Are you sure you want to delete your bank details? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3 px-4 bg-white border border-[#e9e9ea] rounded-lg font-sans font-medium text-[14px] text-[#313131] hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 py-3 px-4 bg-[#EF4444] rounded-lg font-sans font-medium text-[14px] text-white hover:bg-[#dc2626] transition-all"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
