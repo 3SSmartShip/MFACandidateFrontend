@@ -1,8 +1,6 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { RiEyeOffLine, RiEyeLine } from '@remixicon/react';
 import { onboardCandidate } from '@/api/onboard';
 
 export default function InitialData() {
@@ -21,26 +19,19 @@ export default function InitialData() {
     name: '',
     dob: '',
     passportId: '',
-    password: '',
-    rePassword: ''
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showRePassword, setShowRePassword] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     if (isAutoSyncing) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSyncing(true);
       const timer = setTimeout(() => {
         setFormData({
           name: 'Abhyuday Deshpande',
           dob: '1990-01-01',
           passportId: 'P1234567',
-          password: '',
-          rePassword: ''
         });
         setIsSyncing(false);
       }, 3000);
@@ -90,7 +81,6 @@ export default function InitialData() {
 
   return (
     <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative pb-10">
-      {/* Progress Bar */}
       <div className="flex gap-1 w-full px-[20px] py-[2px] mt-14 mb-14">
         <div className="h-1 flex-1 rounded-full bg-[#ccc]" />
         <div className="h-1 flex-1 rounded-full bg-[#ccc]" />
@@ -113,7 +103,6 @@ export default function InitialData() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1">
-          {/* Name */}
           <div className="flex flex-col gap-2 w-full">
             <div className="flex gap-1 items-center">
               <label className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">Name</label>
@@ -129,7 +118,6 @@ export default function InitialData() {
             />
           </div>
 
-          {/* Date Of Birth */}
           <div className="flex flex-col gap-2 w-full">
             <div className="flex gap-1 items-center">
               <label className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">Date Of Birth</label>
@@ -145,7 +133,6 @@ export default function InitialData() {
             />
           </div>
 
-          {/* Passport Id */}
           <div className="flex flex-col gap-2 w-full">
             <div className="flex gap-1 items-center">
               <label className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">Passport Id</label>
@@ -159,48 +146,6 @@ export default function InitialData() {
               className="w-full h-[36px] px-3 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" 
               placeholder="Enter your passport id" 
             />
-          </div>
-
-          {/* Password */}
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">Password</label>
-              <span className="text-[#EF4444]">*</span>
-            </div>
-            <div className="relative">
-              <input 
-                type={showPassword ? 'text' : 'password'} 
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full h-[36px] pl-3 pr-10 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" 
-                placeholder="Enter your password" 
-              />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666]">
-                {showPassword ? <RiEyeLine size={16} /> : <RiEyeOffLine size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Re-enter Password */}
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex gap-1 items-center">
-              <label className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">Re-enter Password</label>
-              <span className="text-[#EF4444]">*</span>
-            </div>
-            <div className="relative">
-              <input 
-                type={showRePassword ? 'text' : 'password'} 
-                name="rePassword"
-                value={formData.rePassword}
-                onChange={handleChange}
-                className="w-full h-[36px] pl-3 pr-10 py-1 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]" 
-                placeholder="Enter your password" 
-              />
-              <button type="button" onClick={() => setShowRePassword(!showRePassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666]">
-                {showRePassword ? <RiEyeLine size={16} /> : <RiEyeOffLine size={16} />}
-              </button>
-            </div>
           </div>
 
           {submitError && (

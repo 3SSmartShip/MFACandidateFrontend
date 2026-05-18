@@ -6,7 +6,6 @@ import {
   RiUpload2Line,
   RiEyeLine,
   RiArrowRightSLine,
-  RiSearchLine,
   RiLoader4Line,
 } from '@remixicon/react';
 import { getDocuments, uploadDocuments } from '@/api/dashboard';
@@ -50,8 +49,14 @@ export default function Dashboard() {
       }).catch(() => {});
     }
     getMyProfile().then((data) => {
-      if (data?.org?.name) setOrgName(data.org.name);
-      if (data?.logoUrl) setLogoUrl(data.logoUrl);
+      if (data?.org?.name) {
+        setOrgName(data.org.name);
+        localStorage.setItem('orgName', data.org.name);
+      }
+      if (data?.logoUrl) {
+        setLogoUrl(data.logoUrl);
+        localStorage.setItem('orgLogoUrl', data.logoUrl);
+      }
     }).catch(() => {});
   }, []);
 
@@ -293,7 +298,7 @@ export default function Dashboard() {
     return (
       <div className="bg-white border border-[#e9e9ea] rounded-[16px] p-4 flex flex-col gap-3">
         <div className="relative w-full">
-          <div className="flex gap-3 items-center w-full" style={{ paddingRight: doc ? '44px' : '0' }}>
+          <div className="flex gap-3 items-center w-full" style={{ paddingRight: doc ? (status !== 'processing' ? '140px' : '0') : '0' }}>
             <div className="flex flex-col gap-1 flex-1 min-w-px">
               <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{title}</h3>
               <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">
@@ -308,13 +313,21 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          {doc && (
-            <button
-              onClick={() => handleEyeClick(doc.id)}
-              className="absolute top-[6px] right-0 bg-white border border-[#e9e9ea] rounded-lg shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] h-8 w-8 flex items-center justify-center hover:bg-gray-50"
-            >
-              <RiEyeLine size={16} className="text-[#666]" />
-            </button>
+          {doc && status !== 'processing' && (
+            <div className="absolute top-[6px] right-0 flex items-center gap-2">
+              <button
+                onClick={() => router.push(`/candidate/view-data?docId=${doc.id}`)}
+                className="text-[11px] font-sans font-medium text-[#313131] bg-white border border-[#e9e9ea] rounded-lg px-2.5 py-1.5 shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50 whitespace-nowrap"
+              >
+                View data
+              </button>
+              <button
+                onClick={() => handleEyeClick(doc.id)}
+                className="bg-white border border-[#e9e9ea] rounded-lg shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] h-8 w-8 flex items-center justify-center hover:bg-gray-50"
+              >
+                <RiEyeLine size={16} className="text-[#666]" />
+              </button>
+            </div>
           )}
         </div>
         {status === 'processing' && (
@@ -384,14 +397,11 @@ export default function Dashboard() {
     );
   }
 
-  const uploadedStatuses = ['processing', 'review', 'error', 'success'];
-  const isAnyUploaded = docs.some((d) => uploadedStatuses.includes(d.status));
-
   if (pageLoading) {
     return (
       <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative overflow-x-hidden">
         <AppHeader logoUrl={logoUrl} orgName={orgName} onLogout={handleLogout} />
-        <div className="flex-1 px-5 pt-28 pb-6 flex flex-col gap-6">
+        <div className="bg-[#f5f5f7] px-4 pt-10 pb-6 flex flex-col gap-6" style={{ marginTop: '96px' }}>
           <div className="space-y-2">
             <div className="h-9 w-16 bg-[#e9e9ea] rounded animate-pulse" />
             <div className="h-9 w-40 bg-[#e9e9ea] rounded animate-pulse" />
@@ -450,25 +460,14 @@ export default function Dashboard() {
 
       <AppHeader logoUrl={logoUrl} orgName={orgName} onLogout={handleLogout} />
 
-      <div className="px-5 pt-28 pb-6">
+      <div className="bg-[#f5f5f7] px-4 pt-10 pb-6 flex flex-col gap-6" style={{ marginTop: '96px' }}>
         <h1 className="font-heading font-semibold text-[36px] leading-[44px] text-[#333]">
           Hi,<br />
           <span className="text-[#666]">{fullName || 'User'}</span>
         </h1>
-        {isAnyUploaded && (
-          <div className="mt-6 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <RiSearchLine className="h-5 w-5 text-[#666]" />
-            </div>
-            <input
-              type="text"
-              className="w-full h-[44px] pl-10 pr-3 py-2 bg-white border border-[#e9e9ea] rounded-lg font-sans text-[14px] text-[#313131] placeholder-[#666] focus:outline-none focus:ring-2 focus:ring-[#1a1d26]"
-              placeholder="Search documents"
-            />
-          </div>
-        )}
+
       </div>
-        <div className="bg-white border-t border-[#e9e9ea] px-5 py-3 flex-1 flex flex-col gap-6">
+        <div className="bg-white border-t border-[#e9e9ea] px-4 pt-5 pb-3 flex-1 flex flex-col gap-6">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="font-sans text-[14px] text-red-600">{error}</p>

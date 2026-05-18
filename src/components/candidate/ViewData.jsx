@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { RiArrowLeftLine, RiArrowRightSLine, RiFileLine, RiCheckLine, RiLogoutBoxLine, RiLoader4Line } from '@remixicon/react';
+import { RiArrowLeftLine, RiArrowRightSLine, RiFileLine, RiCheckLine, RiLoader4Line } from '@remixicon/react';
 import { getDocumentDetail } from '@/api/dashboard';
+import AppHeader from './AppHeader';
 
 const badgeConfig = {
   review: 'bg-[rgba(245,158,11,0.32)]',
@@ -31,27 +32,52 @@ export default function ViewData() {
     setOrgId(stored);
   }, []);
 
+  async function handleLogout() {
+    try {
+      const { candidateLogout } = await import('@/api/auth');
+      await candidateLogout();
+    } catch (e) {
+    } finally {
+      localStorage.clear();
+      router.push('/candidate/login');
+    }
+  }
+
   useEffect(() => {
     if (!orgId || !docId) {
-      setLoading(false);
       return;
     }
     async function fetchDoc() {
       try {
         const data = await getDocumentDetail(orgId, docId);
         setDoc(data);
-        if (data.docStructuredData && typeof data.docStructuredData === 'object') {
-          const built = Object.entries(data.docStructuredData).map(([key, value]) => ({
-            id: key,
-            slug: key.toLowerCase().replace(/\s+/g, '-'),
-            name: key.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-            status: 'review',
-            fields: typeof value === 'object' && !Array.isArray(value)
-              ? Object.entries(value).map(([k, v]) => ({ label: k, value: String(v ?? '') }))
-              : [{ label: key, value: String(value ?? '') }],
-          }));
-          setSections(built);
+        const built = [];
+        if (data.docStructuredData?.sections) {
+          data.docStructuredData.sections.forEach((s, i) => {
+            built.push({
+              id: `section-${i}`,
+              slug: s.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-'),
+              name: s.name,
+              status: 'review',
+              type: 'section',
+              fields: (s.fields || []).map((f) => ({ label: f.name, value: String(f.value ?? '') })),
+            });
+          });
         }
+        if (data.docStructuredData?.tables) {
+          data.docStructuredData.tables.forEach((t, i) => {
+            built.push({
+              id: `table-${i}`,
+              slug: t.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-'),
+              name: t.title,
+              status: 'review',
+              type: 'table',
+              headers: t.headers || [],
+              rows: t.rows || [],
+            });
+          });
+        }
+        setSections(built);
       } catch (e) {
       } finally {
         setLoading(false);
@@ -62,15 +88,41 @@ export default function ViewData() {
 
   const docStatus = doc ? statusConfig[doc.status] || statusConfig.review : null;
 
-  function handleReady() {
-    router.push('/candidate/dashboard');
-  }
-
   if (loading) {
     return (
-      <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative items-center justify-center gap-3">
-        <RiLoader4Line size={24} className="text-[#313131] animate-spin" />
-        <p className="font-sans text-[14px] text-[#666]">Loading...</p>
+      <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
+        <AppHeader onLogout={handleLogout} />
+        <div className="bg-[#f5f5f7] px-5 py-6" style={{ marginTop: '96px' }}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 flex-1">
+              <div className="h-8 w-28 bg-[#e9e9ea] rounded animate-pulse" />
+              <div className="h-4 w-36 bg-[#e9e9ea] rounded animate-pulse" />
+            </div>
+            <div className="h-6 w-16 bg-[#e9e9ea] rounded-full animate-pulse" />
+          </div>
+        </div>
+        <div className="bg-white flex-1 flex flex-col gap-2">
+          <div className="border-b border-[#c5c7c9] flex h-14 items-center px-4">
+            <div className="h-5 w-16 bg-[#e9e9ea] rounded animate-pulse" />
+          </div>
+          <div className="flex-1 flex flex-col gap-3 px-4 py-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white border border-[#e6e6e6] rounded-xl px-4 py-3 flex flex-col gap-3 animate-pulse">
+                <div className="h-5 w-32 bg-[#e9e9ea] rounded" />
+                <div className="flex items-center justify-between">
+                  <div className="h-5 w-12 bg-[#e9e9ea] rounded-full" />
+                  <div className="h-5 w-5 bg-[#e9e9ea] rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white/60 border-t border-b border-[#e9e9ea] px-5 py-6">
+          <div className="flex gap-3">
+            <div className="flex-1 h-11 bg-[#e9e9ea] rounded-lg animate-pulse" />
+            <div className="flex-1 h-11 bg-[#e9e9ea] rounded-lg animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -78,20 +130,9 @@ export default function ViewData() {
   if (!docId || !doc) {
     return (
       <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
-        <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#e9e9ea] bg-white">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-              <img src="/Thumbnail.svg" alt="Company Logo" className="w-full h-full object-contain" />
-            </div>
-            <div className="w-px h-6 bg-[#e9e9ea]"></div>
-            <span className="font-sans font-medium text-[16px] text-[#313131]">Company Name</span>
-          </div>
-          <button className="w-10 h-10 text-[#666] border border-[#e9e9ea] rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-gray-50">
-            <RiLogoutBoxLine size={20} />
-          </button>
-        </div>
+        <AppHeader onLogout={handleLogout} />
         <div className="flex-1 flex items-center justify-center">
-          <p className="font-sans text-[14px] text-[#666]">No document selected.</p>
+          <RiLoader4Line size={24} className="text-[#313131] animate-spin" />
         </div>
       </div>
     );
@@ -99,20 +140,9 @@ export default function ViewData() {
 
   return (
     <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
-      <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#e9e9ea] bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-            <img src="/Thumbnail.svg" alt="Company Logo" className="w-full h-full object-contain" />
-          </div>
-          <div className="w-px h-6 bg-[#e9e9ea]"></div>
-          <span className="font-sans font-medium text-[16px] text-[#313131]">Company Name</span>
-        </div>
-        <button className="w-10 h-10 text-[#666] border border-[#e9e9ea] rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-gray-50">
-          <RiLogoutBoxLine size={20} />
-        </button>
-      </div>
+      <AppHeader onLogout={handleLogout} />
 
-      <div className="bg-[#f5f5f7] px-5 py-6">
+      <div className="bg-[#f5f5f7] px-5 py-6" style={{ marginTop: '96px' }}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col gap-2 flex-1 min-w-px">
             <h1 className="font-heading font-semibold text-[24px] text-[#333] leading-[32px]">
@@ -165,7 +195,7 @@ export default function ViewData() {
                         section.status === 'completed' ? 'text-[#00704b]' : 'text-[#8b5b0b]'
                       }`}
                     >
-                      {section.fields?.length || 0}
+                      {section.type === 'table' ? section.rows?.length || 0 : section.fields?.length || 0}
                     </span>
                     {section.status === 'completed' ? (
                       <RiCheckLine size={12} className="text-[#00704b]" />
@@ -182,23 +212,15 @@ export default function ViewData() {
       </div>
 
       <div className="bg-white/60 backdrop-blur-[2px] border-t border-b border-[#e9e9ea] px-5 py-6">
-        <div className="flex gap-3">
-          <Link href="/candidate/dashboard" className="flex-1">
+        <div className="flex">
+          <Link href="/candidate/dashboard" className="w-full">
             <button
               type="button"
-              className="w-full py-3 px-4 bg-white border border-[#e9e9ea] rounded-lg font-sans font-medium text-[14px] text-[#313131] flex items-center justify-center gap-1 hover:bg-gray-50 transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]"
+              className="w-full py-3 px-4 bg-[#1a1d26] rounded-lg font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]"
             >
-              <RiArrowLeftLine size={16} />
-              Back
+              Back to Dashboard
             </button>
           </Link>
-          <button
-            onClick={handleReady}
-            type="button"
-            className="flex-1 py-3 px-4 bg-[#1a1d26] rounded-lg font-sans font-medium text-[14px] text-white flex items-center justify-center hover:bg-[#2a2e3d] transition-all shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)]"
-          >
-            Ready
-          </button>
         </div>
       </div>
     </div>

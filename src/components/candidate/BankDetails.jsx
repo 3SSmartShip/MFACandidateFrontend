@@ -5,14 +5,17 @@ import Link from 'next/link';
 import Select from 'react-select';
 import {
   RiArrowLeftLine,
-  RiLogoutBoxLine,
   RiMore2Fill,
   RiEditBoxLine,
   RiDeleteBin5Line,
   RiCloseLine,
+  RiLoader4Line,
 } from '@remixicon/react';
 import { getData } from 'country-list';
 import { createBankDetails, updateBankDetails, deleteBankDetails } from '@/api/bank-details';
+import { getDirectory } from '@/api/directory';
+import Toast from './Toast';
+import AppHeader from './AppHeader';
 
 const countryOptions = getData().map(({ code, name }) => ({
   value: code,
@@ -149,7 +152,9 @@ export default function BankDetails() {
   const [orgId, setOrgId] = useState(null);
   const [bankDetails, setBankDetails] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -169,17 +174,22 @@ export default function BankDetails() {
     setMounted(true);
     const storedOrgId = localStorage.getItem('orgId');
     setOrgId(storedOrgId);
-    const stored = localStorage.getItem('bankDetails');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setBankDetails(parsed);
-        setForm(parsed);
-      } catch (e) {
+    if (storedOrgId) {
+      getDirectory(storedOrgId).then((data) => {
+        if (data?.bankDetails?.bankName) {
+          setBankDetails(data.bankDetails);
+          setForm(data.bankDetails);
+        } else {
+          setShowForm(true);
+        }
+      }).catch(() => {
         setShowForm(true);
-      }
+      }).finally(() => {
+        setPageLoading(false);
+      });
     } else {
       setShowForm(true);
+      setPageLoading(false);
     }
   }, []);
 
@@ -239,6 +249,8 @@ export default function BankDetails() {
   async function handleDelete() {
     setMenuOpen(false);
     if (!orgId) return;
+    setIsDeleting(true);
+    setError('');
     try {
       await deleteBankDetails(orgId);
       setBankDetails(null);
@@ -257,24 +269,13 @@ export default function BankDetails() {
     } catch (err) {
       setError(err?.response?.data?.error || 'Failed to delete');
       setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
     }
   }
 
   function handleCancel() {
-    if (bankDetails) {
-      setForm({ ...bankDetails });
-      setShowForm(false);
-    } else {
-      setForm({
-        bankName: '',
-        accountHolderName: '',
-        accountNumber: '',
-        swiftCode: '',
-        ifscCode: '',
-        bankCountry: '',
-        currency: '',
-      });
-    }
+    router.push('/candidate/dashboard');
   }
 
   async function handleLogout() {
@@ -374,51 +375,61 @@ export default function BankDetails() {
           />
         </FormField>
 
-        <FormField label="IFSC Code">
-          <input
-            type="text"
-            className={inputClass}
-            placeholder="eg. HDFC0001234"
-            value={form.ifscCode}
-            onChange={(e) => updateField('ifscCode', e.target.value)}
-          />
-        </FormField>
+        {form.bankCountry === 'IN' && (
+          <FormField label="IFSC Code">
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="eg. HDFC0001234"
+              value={form.ifscCode}
+              onChange={(e) => updateField('ifscCode', e.target.value)}
+            />
+          </FormField>
+        )}
       </>
+    );
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
+        <AppHeader onLogout={handleLogout} />
+        <div className="bg-[#f5f5f7] px-5 pt-10 pb-6" style={{ marginTop: '96px' }}>
+          <div className="h-8 w-36 bg-[#e9e9ea] rounded animate-pulse" />
+        </div>
+        <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex flex-col gap-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <div className="h-5 w-24 bg-[#e9e9ea] rounded animate-pulse" />
+              <div className="h-9 w-full bg-[#e9e9ea] rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white border-t border-b border-[#e9e9ea] px-5 py-6">
+          <div className="flex gap-3">
+            <div className="flex-1 h-11 bg-[#e9e9ea] rounded-lg animate-pulse" />
+            <div className="flex-1 h-11 bg-[#e9e9ea] rounded-lg animate-pulse" />
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
-      <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#e9e9ea] bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-            <img src="/Thumbnail.svg" alt="Company Logo" className="w-full h-full object-contain" />
-          </div>
-          <div className="w-px h-6 bg-[#e9e9ea]"></div>
-          <span className="font-sans font-medium text-[16px] text-[#313131]">Company Name</span>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-10 h-10 text-[#666] border border-[#e9e9ea] rounded-lg bg-white shadow-sm flex items-center justify-center hover:bg-gray-50"
-        >
-          <RiLogoutBoxLine size={20} />
-        </button>
-      </div>
+      <AppHeader onLogout={handleLogout} />
 
-      <div className="bg-[#f5f5f7] px-5 pt-10 pb-6">
+      <div className="bg-[#f5f5f7] px-5 pt-10 pb-6" style={{ marginTop: '96px' }}>
         <h1 className="font-heading font-semibold text-[24px] text-[#313131] leading-[32px]">
           Bank Details
         </h1>
       </div>
 
-      {showForm ? (
+      <Toast message={error} onClose={() => setError('')} />
+
+      {!bankDetails || showForm ? (
         <form onSubmit={handleSubmit} className="flex flex-col flex-1">
           <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex-1">
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="font-sans text-[14px] text-red-600">{error}</p>
-              </div>
-            )}
             <div className="flex flex-col gap-5 w-full">{renderFormFields()}</div>
           </div>
           <div className="bg-white border-t border-b border-[#e9e9ea] px-5 py-6">
@@ -443,12 +454,6 @@ export default function BankDetails() {
       ) : (
         <>
           <div className="bg-white border-t border-[#e9e9ea] px-5 py-6 flex-1">
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="font-sans text-[14px] text-red-600">{error}</p>
-              </div>
-            )}
-
             {bankDetails ? (
               <div className="relative">
                 <div className="bg-[#f9fafb] border border-[#e9e9ea] rounded-[16px] p-5 flex flex-col gap-4">
@@ -519,14 +524,16 @@ export default function BankDetails() {
                         {bankDetails.swiftCode}
                       </p>
                     </div>
-                    <div>
-                      <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
-                        IFSC Code
-                      </p>
-                      <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
-                        {bankDetails.ifscCode || '\u2014'}
-                      </p>
-                    </div>
+                    {bankDetails.bankCountry === 'IN' && (
+                      <div>
+                        <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
+                          IFSC Code
+                        </p>
+                        <p className="font-sans font-medium text-[14px] text-[#313131] leading-[20px]">
+                          {bankDetails.ifscCode || '\u2014'}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="font-sans text-[12px] text-[#666] leading-[16px] tracking-[0.4px]">
                         Country
@@ -603,9 +610,11 @@ export default function BankDetails() {
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 py-3 px-4 bg-[#EF4444] rounded-lg font-sans font-medium text-[14px] text-white hover:bg-[#dc2626] transition-all"
+                disabled={isDeleting}
+                className="flex-1 py-3 px-4 bg-[#EF4444] rounded-lg font-sans font-medium text-[14px] text-white hover:bg-[#dc2626] transition-all disabled:opacity-60 flex items-center justify-center gap-2"
               >
-                Delete
+                {isDeleting && <RiLoader4Line size={16} className="animate-spin" />}
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

@@ -21,6 +21,9 @@ export const metadata = {
     template: "MFA CANDIDATE | %s",
   },
   description: "MFA Candidate Portal",
+  icons: {
+    icon: "/Thumbnail.svg",
+  },
 };
 
 export default function RootLayout({ children }) {

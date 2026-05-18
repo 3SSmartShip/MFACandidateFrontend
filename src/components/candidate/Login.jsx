@@ -4,6 +4,8 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { sendPhoneOtp, verifyPhoneOtp } from '@/api/auth';
+import { getCandidateOrgs } from '@/api/orgs';
+import { getDirectory } from '@/api/directory';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const countries = [
@@ -108,7 +110,22 @@ export default function Login() {
     setLoading(true);
     try {
       await verifyPhoneOtp(phone, token);
-      router.push('/candidate/initial-data');
+      const orgs = await getCandidateOrgs();
+      if (Array.isArray(orgs) && orgs.length > 0) {
+        const org = orgs[0];
+        localStorage.setItem('orgId', org.orgId);
+        localStorage.setItem('orgName', org.name || '');
+        if (org.logoUrl) localStorage.setItem('orgLogoUrl', org.logoUrl);
+        if (org.directoryId) localStorage.setItem('directoryId', org.directoryId);
+        const dir = await getDirectory(org.orgId);
+        if (dir?.fullname) {
+          router.push('/candidate/dashboard');
+        } else {
+          router.push('/candidate/initial-data');
+        }
+      } else {
+        router.push('/candidate/initial-data');
+      }
     } catch (err) {
       setError(err.message || 'Invalid OTP. Please try again.');
     } finally {
