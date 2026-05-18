@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RiArrowLeftLine, RiArrowRightSLine, RiFileLine, RiCheckLine, RiLoader4Line } from '@remixicon/react';
 import { getDocumentDetail } from '@/api/dashboard';
+import { getMyProfile } from '@/api/auth';
 import AppHeader from './AppHeader';
 
 const badgeConfig = {
@@ -23,6 +24,8 @@ export default function ViewData() {
   const router = useRouter();
   const docId = searchParams.get('docId');
   const [orgId, setOrgId] = useState(null);
+  const [orgName, setOrgName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sections, setSections] = useState([]);
@@ -30,6 +33,24 @@ export default function ViewData() {
   useEffect(() => {
     const stored = localStorage.getItem('orgId');
     setOrgId(stored);
+
+    const cachedOrgName = localStorage.getItem('orgName');
+    const cachedLogoUrl = localStorage.getItem('orgLogoUrl');
+    if (cachedOrgName) setOrgName(cachedOrgName);
+    if (cachedLogoUrl) setLogoUrl(cachedLogoUrl);
+
+    getMyProfile()
+      .then((data) => {
+        if (data?.org?.name) {
+          setOrgName(data.org.name);
+          localStorage.setItem('orgName', data.org.name);
+        }
+        if (data?.logoUrl) {
+          setLogoUrl(data.logoUrl);
+          localStorage.setItem('orgLogoUrl', data.logoUrl);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function handleLogout() {
@@ -91,7 +112,7 @@ export default function ViewData() {
   if (loading) {
     return (
       <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
-        <AppHeader onLogout={handleLogout} />
+        <AppHeader logoUrl={logoUrl} orgName={orgName} onLogout={handleLogout} />
         <div className="bg-[#f5f5f7] px-5 py-6" style={{ marginTop: '96px' }}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col gap-3 flex-1">
@@ -130,7 +151,7 @@ export default function ViewData() {
   if (!docId || !doc) {
     return (
       <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
-        <AppHeader onLogout={handleLogout} />
+        <AppHeader logoUrl={logoUrl} orgName={orgName} onLogout={handleLogout} />
         <div className="flex-1 flex items-center justify-center">
           <RiLoader4Line size={24} className="text-[#313131] animate-spin" />
         </div>
@@ -140,7 +161,7 @@ export default function ViewData() {
 
   return (
     <div className="w-full max-w-[412px] min-h-screen bg-[#F9FAFB] flex flex-col mx-auto relative">
-      <AppHeader onLogout={handleLogout} />
+      <AppHeader logoUrl={logoUrl} orgName={orgName} onLogout={handleLogout} />
 
       <div className="bg-[#f5f5f7] px-5 py-6" style={{ marginTop: '96px' }}>
         <div className="flex items-center justify-between gap-3">

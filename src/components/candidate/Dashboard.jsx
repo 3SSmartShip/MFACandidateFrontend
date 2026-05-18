@@ -66,8 +66,13 @@ export default function Dashboard() {
       try {
         const data = await getDocuments(orgId);
         if (Array.isArray(data)) {
-          setDocs(data);
-          localStorage.setItem('documents', JSON.stringify(data));
+          const storedDocs = JSON.parse(localStorage.getItem('documents') || '[]');
+          const enriched = data.map((d) => ({
+            ...d,
+            documentType: d.documentType || storedDocs.find((s) => s.id === d.id)?.documentType || null,
+          }));
+          setDocs(enriched);
+          localStorage.setItem('documents', JSON.stringify(enriched));
         }
       } catch (e) {
       } finally {
@@ -96,7 +101,11 @@ export default function Dashboard() {
               if (idx >= 0) {
                 updated[idx] = { ...updated[idx], ...newDoc, documentType: newDoc.documentType || updated[idx].documentType };
               } else {
-                updated.push(newDoc);
+                const storedDocs = JSON.parse(localStorage.getItem('documents') || '[]');
+                updated.push({
+                  ...newDoc,
+                  documentType: newDoc.documentType || storedDocs.find((s) => s.id === newDoc.id)?.documentType || null,
+                });
               }
             });
             localStorage.setItem('documents', JSON.stringify(updated));
@@ -298,7 +307,7 @@ export default function Dashboard() {
     return (
       <div className="bg-white border border-[#e9e9ea] rounded-[16px] p-4 flex flex-col gap-3">
         <div className="relative w-full">
-          <div className="flex gap-3 items-center w-full" style={{ paddingRight: doc ? (status !== 'processing' ? '140px' : '0') : '0' }}>
+          <div className="flex gap-3 items-center w-full" style={{ paddingRight: doc ? (status === 'review' ? '48px' : status !== 'processing' ? '140px' : '0') : '0' }}>
             <div className="flex flex-col gap-1 flex-1 min-w-px">
               <h3 className="font-heading font-medium text-[16px] leading-[24px] tracking-[0.15px] text-[#313131]">{title}</h3>
               <p className="font-sans font-normal text-[12px] leading-[16px] tracking-[0.4px] text-[#666]">
@@ -315,12 +324,14 @@ export default function Dashboard() {
           </div>
           {doc && status !== 'processing' && (
             <div className="absolute top-[6px] right-0 flex items-center gap-2">
-              <button
-                onClick={() => router.push(`/candidate/view-data?docId=${doc.id}`)}
-                className="text-[11px] font-sans font-medium text-[#313131] bg-white border border-[#e9e9ea] rounded-lg px-2.5 py-1.5 shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50 whitespace-nowrap"
-              >
-                View data
-              </button>
+              {status !== 'review' && (
+                <button
+                  onClick={() => router.push(`/candidate/view-data?docId=${doc.id}`)}
+                  className="text-[11px] font-sans font-medium text-[#313131] bg-white border border-[#e9e9ea] rounded-lg px-2.5 py-1.5 shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] hover:bg-gray-50 whitespace-nowrap"
+                >
+                  View data
+                </button>
+              )}
               <button
                 onClick={() => handleEyeClick(doc.id)}
                 className="bg-white border border-[#e9e9ea] rounded-lg shadow-[0px_1px_2px_0px_rgba(185,185,185,0.1),0px_4px_4px_0px_rgba(185,185,185,0.09)] h-8 w-8 flex items-center justify-center hover:bg-gray-50"
